@@ -27,4 +27,4 @@ jobs:
           # pip install requests pandas 
 
       - name: Run Script
-        run: python myscript.py  # Replace with your actual filename
+        run: extractor.py  # Replace with your actual filename
