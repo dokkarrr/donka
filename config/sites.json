@@ -1,0 +1,50 @@
+[
+  {
+    "domain": "https://www.prothomalo.com",
+    "output_file": "output/prothomalo.xlsx",
+    "db_file": "output/prothomalo.db",
+    "process_percentage": 100.0
+  },
+  {
+    "domain": "https://bangla.thedailystar.net",
+    "output_file": "output/bangla.thedailystar.xlsx",
+    "db_file": "output/bangla.thedailystar.db",
+    "process_percentage": 100.0
+  },
+  {
+    "domain": "https://www.bdnews24.com/bangla",
+    "output_file": "output/bdnews24_bangla.xlsx",
+    "db_file": "output/bdnews24_bangla.db",
+    "process_percentage": 100.0
+  },
+  {
+    "domain": "https://www.jagonews24.com",
+    "output_file": "output/jagonews24.xlsx",
+    "db_file": "output/jagonews24.db",
+    "process_percentage": 100.0
+  },
+  {
+    "domain": "https://www.ittefaq.com.bd",
+    "output_file": "output/ittefaq.xlsx",
+    "db_file": "output/ittefaq.db",
+    "process_percentage": 100.0
+  },
+  {
+    "domain": "https://www.jugantor.com",
+    "output_file": "output/jugantor.xlsx",
+    "db_file": "output/jugantor.db",
+    "process_percentage": 100.0
+  },
+  {
+    "domain": "https://www.kalerkantho.com",
+    "output_file": "output/kalerkantho.xlsx",
+    "db_file": "output/kalerkantho.db",
+    "process_percentage": 100.0
+  },
+  {
+    "domain": "https://www.banglatribune.com",
+    "output_file": "output/banglatribune.xlsx",
+    "db_file": "output/banglatribune.db",
+    "process_percentage": 100.0
+  }
+]

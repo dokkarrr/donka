@@ -1,0 +1,168 @@
+name: 🕔 Daily Sitemap Extraction - 06:51 BST (UTC+6)
+
+on:
+  # 06:51 Bangladesh Standard Time (BST = UTC+6) = 00:51 UTC
+  schedule:
+    - cron: '51 0 * * *'
+
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+    inputs:
+      process_percentage:
+        description: 'Percentage of URLs to process (0.01 - 100)'
+        required: false
+        default: '100'
+      debug_mode:
+        description: 'Enable debug logging'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  extract-sitemaps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 hour max
+
+    permissions:
+      contents: write  # Needed to commit output files back to repo
+
+    steps:
+      # ─── 1. Checkout repo ────────────────────────────────────────────
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for proper git operations
+
+      # ─── 2. Set up Python ────────────────────────────────────────────
+      - name: 🐍 Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # ─── 3. Install dependencies ─────────────────────────────────────
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ─── 4. Validate config ──────────────────────────────────────────
+      - name: ✅ Validate Sites Config
+        run: |
+          python -c "
+          import json, sys, os
+          config_path = 'config/sites.json'
+          if not os.path.exists(config_path):
+              print('❌ config/sites.json not found!')
+              sys.exit(1)
+          with open(config_path) as f:
+              sites = json.load(f)
+          if not sites:
+              print('❌ No sites in config!')
+              sys.exit(1)
+          print(f'✅ Found {len(sites)} site(s) in config:')
+          for s in sites:
+              print(f'   - {s[\"domain\"]}')
+          "
+
+      # ─── 5. Create output/logs directories ───────────────────────────
+      - name: 📁 Prepare Directories
+        run: |
+          mkdir -p output logs
+          echo "Directories ready"
+
+      # ─── 6. Show Bangladesh time ─────────────────────────────────────
+      - name: 🕔 Show Bangladesh Time
+        run: |
+          pip install pytz -q
+          python -c "
+          from datetime import datetime
+          import pytz
+          bst = pytz.timezone('Asia/Dhaka')
+          now = datetime.now(bst)
+          print(f'🇧🇩 Bangladesh Time: {now.strftime(\"%Y-%m-%d %H:%M:%S\")} BST (UTC+6)')
+          print(f'🌍 UTC Time: {datetime.utcnow().strftime(\"%Y-%m-%d %H:%M:%S\")} UTC')
+          "
+
+      # ─── 7. Run extraction ───────────────────────────────────────────
+      - name: 🚀 Run Sitemap Extraction
+        env:
+          PROCESS_PERCENTAGE: ${{ github.event.inputs.process_percentage || '100' }}
+          PYTHONUNBUFFERED: '1'
+        run: |
+          echo "Starting extraction at $(date)"
+          python -c "
+          import os, json, asyncio, sys
+          sys.path.insert(0, 'src')
+          from extractor import run_extraction, load_sites_config
+
+          # Override percentage if provided
+          pct = float(os.environ.get('PROCESS_PERCENTAGE', '100'))
+          print(f'Process percentage: {pct}%')
+
+          sites = load_sites_config('config/sites.json')
+          if sites:
+              asyncio.run(run_extraction(sites, pct))
+          else:
+              print('No sites to process!')
+              sys.exit(1)
+          "
+          echo "Extraction finished at $(date)"
+
+      # ─── 8. Upload output as artifact ────────────────────────────────
+      - name: 📤 Upload Output Files as Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: extraction-output-${{ github.run_number }}
+          path: |
+            output/
+            logs/
+          retention-days: 30
+
+      # ─── 9. Commit output files back to repo ─────────────────────────
+      - name: 💾 Commit Output Files to Repository
+        if: success()
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add output/ logs/ || true
+
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            TIMESTAMP=$(python -c "
+          from datetime import datetime
+          import pytz
+          bst = pytz.timezone('Asia/Dhaka')
+          now = datetime.now(bst)
+          print(now.strftime('%Y-%m-%d %H:%M BST (UTC+6)'))
+          ")
+            git commit -m "🤖 Auto extraction: $TIMESTAMP"
+            git push
+            echo "✅ Output files committed to repository"
+          fi
+
+      # ─── 10. Summary ─────────────────────────────────────────────────
+      - name: 📊 Print Summary
+        if: always()
+        run: |
+          echo "## Extraction Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          python -c "
+          import os, glob
+          output_files = glob.glob('output/*.xlsx') + glob.glob('output/*.db')
+          if output_files:
+              print('### Output Files:')
+              for f in output_files:
+                  size = os.path.getsize(f)
+                  print(f'- \`{f}\` ({size:,} bytes)')
+          else:
+              print('No output files generated')
+          " >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Log file available in artifacts." >> $GITHUB_STEP_SUMMARY
